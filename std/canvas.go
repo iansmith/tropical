@@ -49,18 +49,37 @@ func (c *canvasImpl) Context() *js.Object {
 // Convenience Methods
 //
 func (c *canvasImpl) FillRectangle(x, y, w, h int) {
+	c.BeginPath()
 	c.Rectangle(x, y, w, h)
 	c.Fill()
+}
+func (c *canvasImpl) DrawLine(x1, y1, x2, y2 int) {
+	c.BeginPath()
+	c.MoveTo(x1, y1)
+	c.LineTo(x2, y2)
+	c.Stroke()
 }
 
 //
 // Pass through functions to the 2d drawing context
 //
+func (c *canvasImpl) Translate(x, y int) {
+	c.context.Call("translate", x, y)
+}
+func (c *canvasImpl) MoveTo(x, y int) {
+	c.context.Call("moveTo", x, y)
+}
+func (c *canvasImpl) LineTo(x, y int) {
+	c.context.Call("lineTo", x, y)
+}
 func (c *canvasImpl) Save() {
 	c.context.Call("save")
 }
 func (c *canvasImpl) Fill() {
 	c.context.Call("fill")
+}
+func (c *canvasImpl) Stroke() {
+	c.context.Call("stroke")
 }
 func (c *canvasImpl) Restore() {
 	c.context.Call("restore")
@@ -76,4 +95,10 @@ func (c *canvasImpl) Clip() {
 }
 func (c *canvasImpl) SetFillColor(rgbish string) {
 	c.context.Call("setFillColor", rgbish)
+}
+func (c *canvasImpl) SetStrokeColor(rgbish string) {
+	c.context.Set("strokeStyle", rgbish)
+}
+func (c *canvasImpl) Arc(x, y, radius int, startAngle, finishAngle float64) {
+	c.context.Call("arc", x, y, radius, startAngle, finishAngle, false)
 }
