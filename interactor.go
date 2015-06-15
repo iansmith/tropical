@@ -32,6 +32,16 @@ type Interactor interface {
 }
 
 //
+// Root interactors know how to initiate traversals and know about the
+// particulars of the display.
+//
+type RootInteractor interface {
+	Interactor
+	Pick(event Event) PickList
+	Draw()
+}
+
+//
 // XXX It's sucky from an API standpoint that the function DefaultDrawSelf in
 // XXX std package isn't directly tied to implementing the DrawSelf API. This
 // XXX means that in theory they could get out of sync.  Of course, in practice
@@ -49,6 +59,12 @@ type DrawsSelf interface {
 //its children.
 type DrawsChildren interface {
 	DrawChildren(c Canvas)
+}
+
+//PicksSelf indicates you want to do fancy pick handling.  Implementors are
+//expected to keep the traversal going by continuing through their children.
+type PicksSelf interface {
+	PickSelf(Event, PickList) bool
 }
 
 //

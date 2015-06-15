@@ -1,6 +1,8 @@
 package std
 
 import (
+	_ "fmt"
+
 	"github.com/iansmith/tropical"
 )
 
@@ -13,16 +15,21 @@ type Defaults struct {
 	DrawSelf        func(self tropical.Interactor, c tropical.Canvas)
 	DrawChildren    func(self tropical.Interactor, c tropical.Canvas)
 	StartDimensions func(self tropical.Interactor) (int, int)
-	PickSelf        func(self tropical.Interactor, x, y int) tropical.PickList
+	PickSelf        func(self tropical.Interactor, e tropical.Event, p tropical.PickList) bool
 }
 
-var Default = &Defaults{}
+var (
+	Default     = &Defaults{}
+	MousePolicy tropical.MousePolicy
+)
 
 func init() {
 	//because of a initialization cycle, you must do this in an init() function
 	Default.DrawSelf = DefaultDrawSelf
 	Default.DrawChildren = DefaultDrawChildren
 	Default.StartDimensions = DefaultStartDimensions
+	Default.PickSelf = DefaultPickSelf
+	MousePolicy = NewDefaultMousePolicy()
 }
 
 //DefaultDrawSelf is the standard implementation of DrawSelf for interactors
@@ -67,4 +74,31 @@ func DefaultDrawChildren(self tropical.Interactor, c tropical.Canvas) {
 //DefaultStartDimensions makes an interactor default to a visible, but small, size.
 func DefaultStartDimensions(self tropical.Interactor) (int, int) {
 	return 10, 10 //the old 10x10 trick!
+}
+
+//default is to ask, is this point inside your bounding rect?.  children appear
+//before self in pick list.
+func DefaultPickSelf(self tropical.Interactor, e tropical.Event, p tropical.PickList) bool {
+	x := e.X()
+	y := e.Y()
+	if x < 0 || y < 0 || x >= self.Width() || y >= self.Height() {
+		return false
+	}
+	for _, child := range self.Children() {
+		childX := child.X()
+		childY := child.Y()
+		e.Translate(childX, childY)
+		picks, ok := child.(tropical.PicksSelf)
+		if !ok {
+			Default.PickSelf(child, e, p)
+		} else {
+			picks.PickSelf(e, p)
+		}
+		e.Translate(-childX, -childY)
+	}
+	//allow p to be nil to allow this to just be called as a test
+	if p != nil {
+		p.AddHit(self)
+	}
+	return true
 }

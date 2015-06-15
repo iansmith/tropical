@@ -2,6 +2,8 @@ package std
 
 import (
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/gopherjs/gopherjs/js"
 
@@ -30,7 +32,7 @@ var insetAmount = 5
 // must match the id of exactly one canvas element in the page. This type does
 // not implement DrawSelf because he is the root of the drawing pass.  Child
 // can be nil if you want to set it later.
-func NewRootInteractor(htmlId string, fillColor string, child tropical.Interactor) (tropical.Interactor, chan tropical.Event) {
+func NewRootInteractor(htmlId string, fillColor string, child tropical.Interactor) (tropical.RootInteractor, chan tropical.Event) {
 	c := NewCanvas(htmlId).(*canvasImpl)
 	result := &RootInteractor{
 		c:               c,
@@ -41,22 +43,22 @@ func NewRootInteractor(htmlId string, fillColor string, child tropical.Interacto
 	}
 
 	c.Element().Set("onmousemove", func(e *js.Object) {
-		//x, y := result.fromPageToMyCoords(e.Get("pageX").Int(), e.Get("pageY").Int())
-		//result.ProcessMouseEvent(newEventImpl(tropical.MouseMove, x, y))
+		x, y := result.fromPageToMyCoords(e.Get("pageX").Int(), e.Get("pageY").Int())
+		go result.ProcessMouseEvent(newEventImpl(tropical.MouseMove, x, y))
 	})
 	c.Element().Set("onmousedown", func(e *js.Object) {
 		x, y := result.fromPageToMyCoords(e.Get("pageX").Int(), e.Get("pageY").Int())
-		result.ProcessMouseEvent(newEventImpl(tropical.MouseDown, x, y))
+		go result.ProcessMouseEvent(newEventImpl(tropical.MouseDown, x, y))
 	})
 	c.Element().Set("onmouseup", func(e *js.Object) {
 		x, y := result.fromPageToMyCoords(e.Get("pageX").Int(), e.Get("pageY").Int())
-		result.ProcessMouseEvent(newEventImpl(tropical.MouseUp, x, y))
+		go result.ProcessMouseEvent(newEventImpl(tropical.MouseUp, x, y))
 	})
 	return result, result.eventChan
 }
 
 func (r *RootInteractor) ProcessMouseEvent(e tropical.Event) {
-	print("event", e.X(), e.Y(), e.Type().String(), "but", r.X(), r.Y(), r.Width(), r.Height())
+	r.eventChan <- e
 }
 
 //XXX This may have an off-by-one error because it produces myY==height
@@ -65,12 +67,6 @@ func (r *RootInteractor) ProcessMouseEvent(e tropical.Event) {
 func (r *RootInteractor) fromPageToMyCoords(pageX, pageY int) (int, int) {
 	x := pageX - r.X()
 	y := pageY - r.Y()
-
-	//var style = window.getComputedStyle(document.getElementById("Example"), null);
-	//style.getPropertyValue("height");
-	style := js.Global.Get("window").Call("getComputedStyle", r.c.(*canvasImpl).Element(), nil)
-	left := style.Call("getPropertyValue", "padding-left").Int()
-	print("left padding", left, x-left)
 	return x, y
 }
 
@@ -86,7 +82,6 @@ func (r *RootInteractor) Draw() {
 	w := r.Width() - insetAmount
 	h := r.Height() - insetAmount
 
-	print("root draw", x, y)
 	r.c.Save()
 	r.c.SetFillColor(r.fillColor)
 	js.Global.Call("roundRect", r.c.(*canvasImpl).Context(), x, y, w, h,
@@ -115,6 +110,39 @@ func (r *RootInteractor) Draw() {
 }
 
 //
+// Pick() is the root of a Pick pass.  This implementation knows about the
+// the fact that there is a border of insetAmount around the root interactor's
+// actual drawing area.  Doesn't account for rounded corrners.
+//
+func (r *RootInteractor) Pick(event tropical.Event) tropical.PickList {
+	trueX := event.X() - insetAmount
+	trueY := event.Y() - insetAmount
+	trueWidth := r.Width() - insetAmount
+	trueHeight := r.Height() - insetAmount
+	inDrawingArea := true
+	pl := NewPickList()
+
+	if trueX < 0 || trueY < 0 || trueX >= trueWidth || trueY >= trueHeight {
+		inDrawingArea = false
+	}
+	if !inDrawingArea {
+		return pl
+	}
+	if len(r.Children()) == 0 {
+		return pl
+	}
+	child := r.Children()[0]
+	event.Translate(insetAmount, insetAmount)
+	p, ok := child.(tropical.PicksSelf)
+	if !ok {
+		Default.PickSelf(child, event, pl)
+	} else {
+		p.PickSelf(event, pl)
+	}
+	return pl
+}
+
+//
 // PageCoords
 //
 type PageCoords struct {
@@ -129,19 +157,35 @@ func NewPageCoords(htmlId string) tropical.Coords {
 	return &PageCoords{elem}
 }
 
+func parseBorderOrPanic(s string) int {
+	parts := strings.Split(s, " ")
+	if len(parts) < 2 || !strings.HasSuffix(parts[0], "px") {
+		panic("can't understand border:" + s)
+	}
+	bd := strings.TrimSuffix(parts[0], "px")
+	border, err := strconv.ParseInt(bd, 10, 32)
+	if err != nil {
+		panic("can't understand pixel amount in border:" + s)
+	}
+	return int(border)
+}
 func (p *PageCoords) X() int {
 	bbox := p.elem.Call("getBoundingClientRect")
 	x := bbox.Get("left").Int() + js.Global.Get("window").Get("scrollX").Int()
 	style := js.Global.Get("window").Call("getComputedStyle", p.elem, nil)
 	left := style.Call("getPropertyValue", "padding-left").Int()
-	return x + left
+	bd := style.Call("getPropertyValue", "border-left").String()
+	border := parseBorderOrPanic(bd)
+	return x + left + border
 }
 func (p *PageCoords) Y() int {
 	bbox := p.elem.Call("getBoundingClientRect")
 	y := bbox.Get("top").Int() + js.Global.Get("window").Get("scrollY").Int()
 	style := js.Global.Get("window").Call("getComputedStyle", p.elem, nil)
 	top := style.Call("getPropertyValue", "padding-top").Int()
-	return y + top
+	bd := style.Call("getPropertyValue", "border-top").String()
+	border := parseBorderOrPanic(bd)
+	return y + top + border
 }
 func (p *PageCoords) Width() int {
 	bbox := p.elem.Call("getBoundingClientRect")
@@ -149,7 +193,11 @@ func (p *PageCoords) Width() int {
 	style := js.Global.Get("window").Call("getComputedStyle", p.elem, nil)
 	left := style.Call("getPropertyValue", "padding-left").Int()
 	right := style.Call("getPropertyValue", "padding-right").Int()
-	return w - (left + right)
+	bd := style.Call("getPropertyValue", "border-left").String()
+	bdL := parseBorderOrPanic(bd)
+	bd = style.Call("getPropertyValue", "border-right").String()
+	bdR := parseBorderOrPanic(bd)
+	return w - (left + right + bdL + bdR)
 }
 func (p *PageCoords) Height() int {
 	bbox := p.elem.Call("getBoundingClientRect")
@@ -157,7 +205,11 @@ func (p *PageCoords) Height() int {
 	style := js.Global.Get("window").Call("getComputedStyle", p.elem, nil)
 	top := style.Call("getPropertyValue", "padding-top").Int()
 	bot := style.Call("getPropertyValue", "padding-bottom").Int()
-	return h - (top + bot)
+	bd := style.Call("getPropertyValue", "border-top").String()
+	bdT := parseBorderOrPanic(bd)
+	bd = style.Call("getPropertyValue", "border-bottom").String()
+	bdB := parseBorderOrPanic(bd)
+	return h - (top + bot + bdT + bdB)
 }
 
 func (p *PageCoords) SetX(int) {

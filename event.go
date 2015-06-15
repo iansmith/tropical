@@ -4,7 +4,11 @@ import (
 	"fmt"
 )
 
-type PickList []Interactor
+type PickList interface {
+	Hits() []Interactor
+	AddHit(Interactor) []Interactor
+	Len() int
+}
 
 type EventType int
 
@@ -31,4 +35,15 @@ type Event interface {
 	Type() EventType
 	X() int
 	Y() int
+	Translate(byX, byY int)
+}
+
+type MousePolicy interface {
+	Process(event Event, root RootInteractor)
+}
+
+type Mouser interface {
+	MouseUp(Event)
+	MouseMove(Event)
+	MouseDown(Event)
 }
