@@ -1,8 +1,6 @@
 package std
 
 import (
-	_ "fmt"
-
 	"github.com/iansmith/tropical"
 )
 
@@ -15,6 +13,7 @@ type Defaults struct {
 	DrawSelf        func(self tropical.Interactor, c tropical.Canvas)
 	DrawChildren    func(self tropical.Interactor, c tropical.Canvas)
 	StartDimensions func(self tropical.Interactor) (int, int)
+	PickSelf        func(self tropical.Interactor, x, y int) tropical.PickList
 }
 
 var Default = &Defaults{}

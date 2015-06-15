@@ -44,6 +44,9 @@ func (c *canvasImpl) Height() int {
 func (c *canvasImpl) Context() *js.Object {
 	return c.context
 }
+func (c *canvasImpl) Element() *js.Object {
+	return c.element
+}
 
 //
 // Convenience Methods
