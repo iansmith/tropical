@@ -97,7 +97,7 @@ func (c *canvasImpl) Clip() {
 	c.context.Call("clip")
 }
 func (c *canvasImpl) SetFillColor(rgbish string) {
-	c.context.Call("setFillColor", rgbish)
+	c.context.Set("fillStyle", rgbish)
 }
 func (c *canvasImpl) SetStrokeColor(rgbish string) {
 	c.context.Set("strokeStyle", rgbish)

@@ -63,3 +63,19 @@ func ToLocalFromGlobal(wanted tropical.Interactor, event tropical.Event) {
 		event.Translate(parentChain[i].X(), parentChain[i].Y())
 	}
 }
+
+func ToGlobalFromLocal(start tropical.Interactor, event tropical.Event) {
+	parentChain := []tropical.Interactor{}
+	curr := start
+	for {
+		if curr == nil {
+			break
+		}
+		parentChain = append(parentChain, curr)
+		curr = curr.Parent()
+	}
+	//ignore root object because it's already in global
+	for i := 0; i < len(parentChain)-1; i++ {
+		event.Translate(-parentChain[i].X(), -parentChain[i].Y())
+	}
+}

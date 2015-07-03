@@ -70,6 +70,12 @@ func (r *RootInteractor) fromPageToMyCoords(pageX, pageY int) (int, int) {
 	return x, y
 }
 
+func (r *RootInteractor) ToGlobal(origX, origY int) (int, int) {
+	x := origX - insetAmount
+	y := origY - insetAmount
+	return x, y
+}
+
 // Draw is the root of a drawing pass. This implementation offsets its children
 // by 5px in x and y and draws a rounded rectangle in the provided background
 // color before drawing its child.  If the child does not implement
@@ -139,6 +145,7 @@ func (r *RootInteractor) Pick(event tropical.Event) tropical.PickList {
 	} else {
 		p.PickSelf(event, pl)
 	}
+	event.Translate(-insetAmount, -insetAmount)
 	return pl
 }
 

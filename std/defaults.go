@@ -19,8 +19,8 @@ type Defaults struct {
 }
 
 var (
-	Default     = &Defaults{}
-	MousePolicy tropical.MousePolicy
+	Default       = &Defaults{}
+	MouseDispatch tropical.MouseDispatch
 )
 
 func init() {
@@ -29,7 +29,7 @@ func init() {
 	Default.DrawChildren = DefaultDrawChildren
 	Default.StartDimensions = DefaultStartDimensions
 	Default.PickSelf = DefaultPickSelf
-	MousePolicy = NewDefaultMousePolicy()
+	MouseDispatch = NewDefaultMouseDispatch()
 }
 
 //DefaultDrawSelf is the standard implementation of DrawSelf for interactors
