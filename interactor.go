@@ -87,6 +87,7 @@ type Canvas interface {
 	MoveTo(x, y int)                                       //move to point
 	LineTo(x, y int)                                       //from current point to this destination
 	Translate(x, y int)                                    //change coord system
+	DrawImageById(id string, x, y int)                     //you must insure that id is in the page
 	Arc(x, y, radius int, startAngle, finishAngle float64) //do an arc, angle in radians from 3 o'clock, going counter-clockwise
 	//composite functions
 	FillRectangle(x, y, w, h int) //shorthand for defining a path and then filling it

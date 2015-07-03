@@ -77,14 +77,19 @@ func DefaultStartDimensions(self tropical.Interactor) (int, int) {
 }
 
 //default is to ask, is this point inside your bounding rect?.  children appear
-//before self in pick list.
+//before self in pick list. children are picked in the reverse order they are
+//drawn.
 func DefaultPickSelf(self tropical.Interactor, e tropical.Event, p tropical.PickList) bool {
 	x := e.X()
 	y := e.Y()
 	if x < 0 || y < 0 || x >= self.Width() || y >= self.Height() {
 		return false
 	}
+	rev := []tropical.Interactor{}
 	for _, child := range self.Children() {
+		rev = append([]tropical.Interactor{child}, rev...)
+	}
+	for _, child := range rev {
 		childX := child.X()
 		childY := child.Y()
 		e.Translate(childX, childY)

@@ -16,7 +16,7 @@ type DefaultMouseDispatch struct {
 
 func NewDefaultMouseDispatch() tropical.MouseDispatch {
 	return &DefaultMouseDispatch{
-		FocusPolicies: []tropical.MousePolicy{&ClickerPolicy{}, &DraggerPolicy{}},
+		FocusPolicies: []tropical.MousePolicy{&DraggerPolicy{}, &ClickerPolicy{}},
 		Monitors:      []tropical.MouseMonitor{},
 	}
 }
@@ -107,6 +107,7 @@ func (d *DefaultMouseDispatch) Process(event tropical.Event, root tropical.RootI
 	}
 
 	list := root.Pick(event)
+
 	/*
 		for i, picked := range list.Hits() {
 			print("pick list contains ", i, fmt.Sprintf("%T", picked))

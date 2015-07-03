@@ -102,6 +102,10 @@ func (c *canvasImpl) SetFillColor(rgbish string) {
 func (c *canvasImpl) SetStrokeColor(rgbish string) {
 	c.context.Set("strokeStyle", rgbish)
 }
+func (c *canvasImpl) DrawImageById(id string, x, y int) {
+	img := js.Global.Get("document").Call("getElementById", id)
+	c.context.Call("drawImage", img, x, y)
+}
 func (c *canvasImpl) Arc(x, y, radius int, startAngle, finishAngle float64) {
 	c.context.Call("arc", x, y, radius, startAngle, finishAngle, false)
 }
